@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-use Moo;
 use strictures;
 
 BEGIN { $ENV{TZ} = 'UTC' }
