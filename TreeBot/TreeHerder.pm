@@ -1,6 +1,7 @@
 package TreeBot::TreeHerder;
 use Moo;
 
+use DateTime;
 use HTTP::Request;
 use JSON::XS qw(decode_json);
 use POE qw(Component::Client::HTTP);
@@ -142,7 +143,15 @@ sub _touch {
 
 sub _cleanup {
     my ($self) = @_;
-    # TODO delete files older than 7 days
+    my $now = DateTime->now;
+    foreach my $file (glob(TreeBot::Config->instance->data_path . '/*')) {
+        next unless $file =~ m#/\d+$#;
+        my $modified = DateTime->from_epoch( epoch => (stat($file))[9] );
+        my $age = $now->delta_days($modified)->in_units('days');
+        next if $age <= 7;
+        print "deleting old revision: $file\n";
+        unlink($file);
+    }
 }
 
 1;
