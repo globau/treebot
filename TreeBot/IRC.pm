@@ -75,7 +75,9 @@ sub irc_001 {
     my $irc = $sender->get_heap();
     my $config = TreeBot::Config->instance;
     TreeBot::TreeHerder->instance->init($irc);
-    $irc->yield(join => $config->irc_channel);
+    foreach my $channel (@{ $config->irc_channels }) {
+        $irc->yield(join => $channel);
+    }
 }
 
 sub irc_join {

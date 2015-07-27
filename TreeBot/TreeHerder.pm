@@ -106,10 +106,11 @@ sub status_handler {
             next unless $revision->{comments} =~ /^bug\s+(\d+)/i;
             my $bug_id = $1;
             print "announcing text-failure bug $bug_id\n";
-            $self->irc->yield(
-                privmsg => TreeBot::Config->instance->irc_channel
-                => "Test Failure: Bug $bug_id - https://treeherder.mozilla.org/#/jobs?repo=bmo-master&revision=" . $revision->{revision}
-            );
+            my $msg = "Test Failure: Bug $bug_id - " .
+                "https://treeherder.mozilla.org/#/jobs?repo=bmo-master&revision=" . $revision->{revision};
+            foreach my $channel (@{ TreeBot::Config->instance->irc_channels }) {
+                $self->irc->yield( privmsg => $channel => $msg );
+            }
         }
     } catch {
         my $error = $_;

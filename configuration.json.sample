@@ -1,7 +1,7 @@
 {
     "irc_host":     "irc.mozilla.org",
     "irc_port":     6668,
-    "irc_channel":  "#bmo",
+    "irc_channels": "#bmo #bteam",
     "irc_nick":     "treebot",
     "irc_password": "secret",
     "irc_name":     "treebot (glob@mozilla.com)"

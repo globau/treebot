@@ -7,7 +7,7 @@ use Mojo::JSON;
 
 has irc_host     => ( is => 'ro' );
 has irc_port     => ( is => 'ro' );
-has irc_channel  => ( is => 'ro' );
+has irc_channels => ( is => 'ro', coerce => \&coerce_channels );
 has irc_nick     => ( is => 'ro' );
 has irc_password => ( is => 'ro' );
 has irc_name     => ( is => 'ro' );
@@ -30,9 +30,13 @@ around BUILDARGS => sub {
 
 sub BUILD {
     my ($self) = @_;
-    die "config requires irc_host, irc_channel, irc_nick\n"
-        unless $self->irc_host && $self->irc_channel && $self->irc_nick;
+    die "config requires irc_host, irc_channels, irc_nick\n"
+        unless $self->irc_host && $self->irc_channels && $self->irc_nick;
     mkdir($self->data_path) unless -d $self->data_path;
+}
+
+sub _coerce_channels {
+    return [ split(/\s+/, $_[0]) ];
 }
 
 sub _build_pid_file  { "$RealBin/treebot.pid" }
