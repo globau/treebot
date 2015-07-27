@@ -22,7 +22,6 @@ sub gd_getopt {
     my ($self) = @_;
     if (grep { $_ eq '-d' } @ARGV) {
         @ARGV = qw(-f start);
-        TreeBot::Config->instance->debug(1);
     }
     $self->SUPER::gd_getopt();
 }
