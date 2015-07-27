@@ -7,7 +7,7 @@ use Mojo::JSON;
 
 has irc_host     => ( is => 'ro' );
 has irc_port     => ( is => 'ro' );
-has irc_channels => ( is => 'ro', coerce => \&coerce_channels );
+has irc_channels => ( is => 'ro', coerce => \&_coerce_channels );
 has irc_nick     => ( is => 'ro' );
 has irc_password => ( is => 'ro' );
 has irc_name     => ( is => 'ro' );
