@@ -32,10 +32,10 @@ sub poll {
     $self->resultset(undef);
 
     # grab resultset
-    print "requesting https://treeherder.mozilla.org/api/project/bmo-master/resultset\n";
+    print "requesting https://treeherder.mozilla.org/api/project/bmo-master/resultset/\n";
     $kernel->post(
         'ua', 'request', 'response',
-        HTTP::Request->new( GET => 'https://treeherder.mozilla.org/api/project/bmo-master/resultset' ),
+        HTTP::Request->new( GET => 'https://treeherder.mozilla.org/api/project/bmo-master/resultset/' ),
         'resultset'
     );
 
@@ -76,10 +76,10 @@ sub resultset_handler {
                 $self->_touch($id);
             }
             else {
-                print "requesting https://treeherder.mozilla.org/api/project/bmo-master/resultset/$id/status\n";
+                print "requesting https://treeherder.mozilla.org/api/project/bmo-master/resultset/$id/status/\n";
                 $kernel->post(
                     'ua', 'request', 'response',
-                    HTTP::Request->new( GET => "https://treeherder.mozilla.org/api/project/bmo-master/resultset/$id/status" ),
+                    HTTP::Request->new( GET => "https://treeherder.mozilla.org/api/project/bmo-master/resultset/$id/status/" ),
                     "status.$id"
                 );
             }
