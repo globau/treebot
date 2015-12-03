@@ -46,6 +46,7 @@ sub poll {
 
 sub response {
     my ($self, $kernel, $gen_args, $call_args) = @_[OBJECT, KERNEL, ARG0, ARG1];
+    print "processing response\n";
 
     # decode json
     my $response;
@@ -58,6 +59,7 @@ sub response {
     };
 
     # pass to handler
+    print "handling ", $gen_args->[1], "\n";
     if ($gen_args->[1] eq 'resultset') {
         $self->resultset_handler($kernel, $response);
     }
@@ -100,7 +102,8 @@ sub status_handler {
         my ($result) = grep { $_->{id} == $id } @{ $self->resultset() };
         return unless $result;
 
-        $self->_touch($id);
+        $self->_touch($id, scalar localtime());
+        printf "$id status: %s\n", ($response->{testfailed} ? 'failed' : 'passed');
         return unless $response->{testfailed};
 
         foreach my $revision (@{ $result->{revisions} }) {
@@ -127,16 +130,17 @@ sub _exists {
 }
 
 sub _touch {
-    my ($self, $id) = @_;
+    my ($self, $id, $data) = @_;
     my $file = TreeBot::Config->instance->data_path . '/' . $id;
     my $time = time();
-    if (-e $file) {
+    if (-e $file && !defined($data)) {
         utime($time, $time, $file)
             or die "failed to touch $file: $!\n";
     }
     else {
         open(my $fh, '>', $file)
             or die "failed to create $file: $!\n";
+        print $fh $data if defined($data);
         close($fh);
     }
 }
