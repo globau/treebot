@@ -4,7 +4,7 @@ use Moo;
 use DateTime;
 use HTTP::Request;
 use JSON::XS qw(decode_json);
-use POE qw(Component::Client::HTTP);
+use POE qw(Component::Curl::Multi);
 use Try::Tiny;
 
 has irc       => ( is => 'rw' );
@@ -18,11 +18,12 @@ sub instance {
 
 sub init {
     my ($self, $irc) = @_;
-    POE::Component::Client::HTTP->spawn(
+    POE::Component::Curl::Multi->spawn(
         Agent           => 'TreeBot/0.1',
         Alias           => 'ua',
         FollowRedirects => 5,
         Timeout         => 30,
+        curl_debug      => 0,
     );
     $self->irc($irc);
 }
@@ -51,10 +52,10 @@ sub response {
     # decode json
     my $response;
     try {
-        $response = decode_json($call_args->[0]->decoded_content);
+        $response = decode_json($call_args->[0]->content);
     } catch {
         warn "Failed to decode json: $_\n";
-        warn $call_args->[0]->as_string(), "\n";
+        warn $call_args->[0]->as_string, "\n";
         return;
     };
 
