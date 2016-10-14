@@ -7,6 +7,8 @@ use JSON::XS qw(decode_json);
 use POE qw(Component::Curl::Multi);
 use Try::Tiny;
 
+use constant DEBUG => 0;
+
 has irc       => ( is => 'rw' );
 has resultset => ( is => 'rw' );
 
@@ -23,7 +25,7 @@ sub init {
         Alias           => 'ua',
         FollowRedirects => 5,
         Timeout         => 30,
-        curl_debug      => 0,
+        curl_debug      => DEBUG,
     );
     $self->irc($irc);
 }
@@ -34,7 +36,7 @@ sub poll {
     $self->resultset(undef);
 
     # grab resultset
-    print "requesting https://treeherder.mozilla.org/api/project/bmo-master/resultset/\n";
+    DEBUG and print "requesting https://treeherder.mozilla.org/api/project/bmo-master/resultset/\n";
     $kernel->post(
         'ua', 'request', 'response',
         HTTP::Request->new( GET => 'https://treeherder.mozilla.org/api/project/bmo-master/resultset/' ),
@@ -47,7 +49,7 @@ sub poll {
 
 sub response {
     my ($self, $kernel, $gen_args, $call_args) = @_[OBJECT, KERNEL, ARG0, ARG1];
-    print "processing response\n";
+    DEBUG and print "processing response\n";
 
     # decode json
     my $response;
@@ -60,7 +62,7 @@ sub response {
     };
 
     # pass to handler
-    print "handling ", $gen_args->[1], "\n";
+    DEBUG and print "handling ", $gen_args->[1], "\n";
     if ($gen_args->[1] eq 'resultset') {
         $self->resultset_handler($kernel, $response);
     }
@@ -77,10 +79,11 @@ sub resultset_handler {
         foreach my $result (@{ $response->{results} }) {
             my $id = $result->{id};
             if ($self->_exists($id)) {
+                DEBUG and print "already handled result $id\n";
                 $self->_touch($id);
             }
             else {
-                print "requesting https://treeherder.mozilla.org/api/project/bmo-master/resultset/$id/status/\n";
+                DEBUG and print "requesting https://treeherder.mozilla.org/api/project/bmo-master/resultset/$id/status/\n";
                 $kernel->post(
                     'ua', 'request', 'response',
                     HTTP::Request->new( GET => "https://treeherder.mozilla.org/api/project/bmo-master/resultset/$id/status/" ),
@@ -104,13 +107,13 @@ sub status_handler {
         return unless $result;
 
         $self->_touch($id, scalar localtime());
-        printf "$id status: %s\n", ($response->{testfailed} ? 'failed' : 'passed');
+        DEBUG and printf "$id status: %s\n", ($response->{testfailed} ? 'failed' : 'passed');
         return unless $response->{testfailed};
 
         foreach my $revision (@{ $result->{revisions} }) {
             next unless $revision->{comments} =~ /^bug\s+(\d+)/i;
             my $bug_id = $1;
-            print "announcing text-failure bug $bug_id\n";
+            print "announcing test-failure bug $bug_id\n";
             my $msg = "Test Failure: Bug $bug_id - " .
                 "https://treeherder.mozilla.org/#/jobs?repo=bmo-master&revision=" . $revision->{revision};
             foreach my $channel (@{ TreeBot::Config->instance->irc_channels }) {
@@ -154,7 +157,7 @@ sub _cleanup {
         my $modified = DateTime->from_epoch( epoch => (stat($file))[9] );
         my $age = $now->delta_days($modified)->in_units('days');
         next if $age <= 7;
-        print "deleting old revision: $file\n";
+        DEBUG and print "deleting old revision: $file\n";
         unlink($file);
     }
 }
