@@ -3,14 +3,9 @@ use Moo;
 
 use File::Slurp;
 use FindBin qw($RealBin);
-use Mojo::JSON;
+use YAML::Tiny;
 
-has irc_host     => ( is => 'ro' );
-has irc_port     => ( is => 'ro' );
-has irc_channels => ( is => 'ro', coerce => \&_coerce_channels );
-has irc_nick     => ( is => 'ro' );
-has irc_password => ( is => 'ro' );
-has irc_name     => ( is => 'ro' );
+has irc   => ( is => 'ro' );
 
 has pid_file     => ( is => 'lazy' );
 has log_file     => ( is => 'lazy' );
@@ -18,20 +13,20 @@ has data_path    => ( is => 'lazy' );
 
 around BUILDARGS => sub {
     my ($orig, $class) = @_;
-    my $json = Mojo::JSON->new();
-    my $config = $json->decode(scalar read_file("$RealBin/configuration.json"))
-        || die $json->error;
-
-    $config->{irc_port} ||= 6668;
-    $config->{irc_name} ||= $config->{irc_nick};
-
+    my $config = YAML::Tiny->read("$RealBin/configuration.yaml")->[0];
+    $config->{irc}->{port} ||= 6668;
+    $config->{irc}->{name} ||= $config->{irc}->{nick};
+    $config->{irc}->{channels} = [
+        map { $_ = '#' . $_ unless /^#/; $_  }
+        split /\s+/, $config->{irc}->{channels}
+    ];
     return $class->$orig($config);
 };
 
 sub BUILD {
     my ($self) = @_;
     die "config requires irc_host, irc_channels, irc_nick\n"
-        unless $self->irc_host && $self->irc_channels && $self->irc_nick;
+        unless $self->irc->{host} && $self->irc->{channels} && $self->irc->{nick};
     mkdir($self->data_path) unless -d $self->data_path;
 }
 

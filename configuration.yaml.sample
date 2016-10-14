@@ -1,0 +1,8 @@
+---
+irc:
+    host: irc.mozilla.org
+    port: 6668
+    channels: bmo bteam
+    nick: treebot
+    password: secret
+    name: treebot (glob@mozilla.com)

@@ -16,18 +16,18 @@ sub irc { $_irc }
 sub start {
     my $config = TreeBot::Config->instance;
     $_irc = POE::Component::IRC->spawn(
-        nick        => $config->irc_nick,
-        ircname     => $config->irc_name,
-        server      => $config->irc_host,
-        port        => $config->irc_port,
+        nick        => $config->irc->{nick},
+        ircname     => $config->irc->{name},
+        server      => $config->irc->{host},
+        port        => $config->irc->{port},
     ) or die "failed: $!\n";
 
     $_irc->plugin_add(
         'NickServID',
         POE::Component::IRC::Plugin::NickServID->new(
-            Password => $config->irc_password,
+            Password => $config->irc->{password},
         )
-    ) if $config->irc_password;
+    ) if $config->irc->{password};
 
     POE::Session->create(
         package_states => [
@@ -63,9 +63,9 @@ sub _start {
     $irc->plugin_add('Connector' => $heap->{connector});
     $irc->yield (
         connect => {
-            Server  => $config->irc_host,
-            Port    => $config->irc_port,
-            Nick    => $config->irc_nick,
+            Server  => $config->irc->{host},
+            Port    => $config->irc->{port},
+            Nick    => $config->irc->{nick},
         }
     );
 }
@@ -75,7 +75,7 @@ sub irc_001 {
     my $irc = $sender->get_heap();
     my $config = TreeBot::Config->instance;
     TreeBot::TreeHerder->instance->init($irc);
-    foreach my $channel (@{ $config->irc_channels }) {
+    foreach my $channel (@{ $config->irc->{channels} }) {
         $irc->yield(join => $channel);
     }
 }
