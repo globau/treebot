@@ -6,6 +6,7 @@ use FindBin qw($RealBin);
 use YAML::Tiny;
 
 has irc   => ( is => 'ro' );
+has repos => ( is => 'ro' );
 
 has pid_file     => ( is => 'lazy' );
 has log_file     => ( is => 'lazy' );
@@ -16,17 +17,19 @@ around BUILDARGS => sub {
     my $config = YAML::Tiny->read("$RealBin/configuration.yaml")->[0];
     $config->{irc}->{port} ||= 6668;
     $config->{irc}->{name} ||= $config->{irc}->{nick};
-    $config->{irc}->{channels} = [
-        map { $_ = '#' . $_ unless /^#/; $_  }
-        split /\s+/, $config->{irc}->{channels}
-    ];
+    foreach my $repo (@{ $config->{repos} }) {
+        $repo->{channels} = [
+            map { $_ = '#' . $_ unless /^#/; $_  }
+            split /\s+/, $repo->{channels}
+        ];
+    }
     return $class->$orig($config);
 };
 
 sub BUILD {
     my ($self) = @_;
-    die "config requires irc_host, irc_channels, irc_nick\n"
-        unless $self->irc->{host} && $self->irc->{channels} && $self->irc->{nick};
+    die "config requires irc_host, irc_nick\n"
+        unless $self->irc->{host} && $self->irc->{nick};
     mkdir($self->data_path) unless -d $self->data_path;
 }
 
