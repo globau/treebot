@@ -5,8 +5,9 @@ use File::Slurp;
 use FindBin qw($RealBin);
 use YAML::Tiny;
 
-has irc   => ( is => 'ro' );
-has repos => ( is => 'ro' );
+has irc     => ( is => 'ro' );
+has repos   => ( is => 'ro' );
+has debug   => ( is => 'rw' );
 
 has pid_file     => ( is => 'lazy' );
 has log_file     => ( is => 'lazy' );
@@ -15,6 +16,7 @@ has data_path    => ( is => 'lazy' );
 around BUILDARGS => sub {
     my ($orig, $class) = @_;
     my $config = YAML::Tiny->read("$RealBin/configuration.yaml")->[0];
+    $config->{debug} = 0;
     $config->{irc}->{port} ||= 6668;
     $config->{irc}->{name} ||= $config->{irc}->{nick};
     foreach my $repo (@{ $config->{repos} }) {

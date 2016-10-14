@@ -7,8 +7,6 @@ use JSON::XS qw(decode_json);
 use POE qw(Component::Curl::Multi);
 use Try::Tiny;
 
-use constant DEBUG => 0;
-
 has irc       => ( is => 'rw' );
 has resultset => ( is => 'rw' );
 
@@ -40,7 +38,7 @@ sub poll {
         my $project = $repo->{project};
         $self->resultset->{$project} = undef;
         my $url = "https://treeherder.mozilla.org/api/project/$project/resultset/";
-        DEBUG and print "requesting $url\n";
+        $config->debug and print "requesting $url\n";
         $kernel->post(
             'ua', 'request', 'response',
             HTTP::Request->new( GET => $url ),
@@ -54,7 +52,8 @@ sub poll {
 
 sub response {
     my ($self, $kernel, $gen_args, $call_args) = @_[OBJECT, KERNEL, ARG0, ARG1];
-    DEBUG and print "processing response\n";
+    my $config = TreeBot::Config->instance;
+    $config->debug and print "processing response\n";
 
     # decode json
     my $response;
@@ -68,7 +67,7 @@ sub response {
 
     # pass to handler
     my $event = $gen_args->[1];
-    DEBUG and print "handling $event\n";
+    $config->debug and print "handling $event\n";
     if ($event =~ /^resultset:(.+)/) {
         $self->resultset_handler($kernel, $response, $1);
     }
@@ -79,18 +78,19 @@ sub response {
 
 sub resultset_handler {
     my ($self, $kernel, $response, $project) = @_;
+    my $config = TreeBot::Config->instance;
 
     try {
         $self->resultset->{$project} = $response->{results};
         foreach my $result (@{ $response->{results} }) {
             my $id = $result->{id};
             if ($self->_exists($project, $id)) {
-                DEBUG and print "already handled result $project:$id\n";
+                $config->debug and print "already handled result $project:$id\n";
                 $self->_touch($project, $id);
             }
             else {
                 my $url = "https://treeherder.mozilla.org/api/project/$project/resultset/$id/status/";
-                DEBUG and print "requesting $url\n";
+                $config->debug and print "requesting $url\n";
                 $kernel->post(
                     'ua', 'request', 'response',
                     HTTP::Request->new( GET => $url ),
@@ -118,7 +118,7 @@ sub status_handler {
         }
 
         $self->_touch($project, $id, scalar localtime());
-        DEBUG and printf "$project:$id status: %s\n", ($response->{testfailed} ? 'failed' : 'passed');
+        $config->debug and printf "$project:$id status: %s\n", ($response->{testfailed} ? 'failed' : 'passed');
         return unless $response->{testfailed};
 
         foreach my $revision (@{ $result->{revisions} }) {
@@ -165,13 +165,14 @@ sub _touch {
 
 sub _cleanup {
     my ($self) = @_;
+    my $config = TreeBot::Config->instance;
     my $now = DateTime->now;
     foreach my $file (glob(TreeBot::Config->instance->data_path . '/*')) {
         next unless $file =~ m#/[^\.]+\.\d+$#;
         my $modified = DateTime->from_epoch( epoch => (stat($file))[9] );
         my $age = $now->delta_days($modified)->in_units('days');
         next if $age <= 7;
-        DEBUG and print "deleting old revision: $file\n";
+        $config->debug and print "deleting old revision: $file\n";
         unlink($file);
     }
 }

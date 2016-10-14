@@ -20,6 +20,7 @@ sub start {
         ircname     => $config->irc->{name},
         server      => $config->irc->{host},
         port        => $config->irc->{port},
+        debug       => $config->debug,
     ) or die "failed: $!\n";
 
     $_irc->plugin_add(
